@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NuWay Solar Energy Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --sun:#FFB800;--sun2:#FF8C00;--sun-glow:rgba(255,184,0,0.2);
+  --green:#00E676;--green-dim:rgba(0,230,118,0.1);
+  --blue:#00B4FF;--blue-dim:rgba(0,180,255,0.1);
+  --red:#FF4757;
+  --bg1:#080C1F;--bg2:#0D1535;
+  --glass:rgba(15,25,60,0.6);
+  --glass-border:rgba(100,130,255,0.12);
+  --glass-hover:rgba(15,25,60,0.8);
+  --text:#F0F6FF;--muted:#6B7FA3;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Space Grotesk',sans-serif;
+  background:linear-gradient(135deg,#080C1F 0%,#0D1535 50%,#080C1F 100%);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* Animated background */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 0%,rgba(255,184,0,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%,rgba(0,180,255,0.07) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 50% at 50% 50%,rgba(0,230,118,0.04) 0%,transparent 70%);
+  pointer-events:none;z-index:0;
+}
+body>*{position:relative;z-index:1;}
+
+/* Grid lines background */
+body::after{
+  content:'';
+  position:fixed;inset:0;
+  background-image:linear-gradient(rgba(100,130,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(100,130,255,0.03) 1px,transparent 1px);
+  background-size:60px 60px;
+  pointer-events:none;z-index:0;
+}
+
+/* Header */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 36px;
+  border-bottom:1px solid var(--glass-border);
+  background:rgba(8,12,31,0.95);
+  backdrop-filter:blur(20px);
+  position:sticky;top:0;z-index:100;
+  flex-wrap:wrap;gap:10px;
+}
+.logo{display:flex;align-items:center;gap:16px;}
+.sun-wrap{position:relative;width:48px;height:48px;}
+.sun-core{
+  position:absolute;inset:8px;
+  background:radial-gradient(circle,#FFE066,var(--sun));
+  border-radius:50%;
+  box-shadow:0 0 20px var(--sun),0 0 40px rgba(255,184,0,0.4);
+  animation:sunPulse 3s ease-in-out infinite;
+}
+.sun-rays{
+  position:absolute;inset:0;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(255,184,0,0.4) 10deg,transparent 20deg,transparent 30deg,rgba(255,184,0,0.3) 40deg,transparent 50deg,transparent 60deg,rgba(255,184,0,0.4) 70deg,transparent 80deg,transparent 90deg,rgba(255,184,0,0.3) 100deg,transparent 110deg,transparent 120deg,rgba(255,184,0,0.4) 130deg,transparent 140deg,transparent 150deg,rgba(255,184,0,0.3) 160deg,transparent 170deg,transparent 180deg,rgba(255,184,0,0.4) 190deg,transparent 200deg,transparent 210deg,rgba(255,184,0,0.3) 220deg,transparent 230deg,transparent 240deg,rgba(255,184,0,0.4) 250deg,transparent 260deg,transparent 270deg,rgba(255,184,0,0.3) 280deg,transparent 290deg,transparent 300deg,rgba(255,184,0,0.4) 310deg,transparent 320deg,transparent 330deg,rgba(255,184,0,0.3) 340deg,transparent 350deg,transparent 360deg);
+  border-radius:50%;
+  animation:rotateSun 12s linear infinite;
+}
+@keyframes rotateSun{to{transform:rotate(360deg);}}
+@keyframes sunPulse{0%,100%{box-shadow:0 0 20px var(--sun),0 0 40px rgba(255,184,0,0.4);}50%{box-shadow:0 0 30px var(--sun),0 0 60px rgba(255,184,0,0.6);}}
+.logo-text h1{
+  font-family:'Orbitron',sans-serif;
+  font-size:16px;font-weight:700;
+  letter-spacing:2px;
+  background:linear-gradient(135deg,var(--sun),#FFE066);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.logo-text p{font-size:11px;color:var(--muted);letter-spacing:0.05em;margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.badge{display:flex;align-items:center;gap:6px;border-radius:20px;padding:5px 14px;font-size:11px;font-weight:600;letter-spacing:0.05em;}
+.badge-live{background:rgba(0,230,118,0.12);border:1px solid rgba(0,230,118,0.4);color:var(--green);}
+.badge-real{background:rgba(0,180,255,0.12);border:1px solid rgba(0,180,255,0.4);color:var(--blue);}
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--green);}50%{opacity:0.2;box-shadow:none;}}
+.hdate{font-size:12px;color:var(--muted);}
+
+/* Main container */
+.container{max-width:1320px;margin:0 auto;padding:28px 24px;}
+
+/* Glass card */
+.card{
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:20px;
+  padding:22px 24px;
+  transition:transform 0.3s,border-color 0.3s,box-shadow 0.3s;
+}
+.card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(255,184,0,0.2);
+  box-shadow:0 8px 32px rgba(0,0,0,0.3),0 0 0 1px rgba(255,184,0,0.05);
+}
+
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;}
+.kpi{
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--glass-border);
+  border-radius:18px;
+  padding:18px 20px;
+  position:relative;overflow:hidden;
+  transition:transform 0.3s,border-color 0.3s,box-shadow 0.3s;
+  cursor:default;
+}
+.kpi::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.1),transparent);
+}
+.kpi:hover{transform:translateY(-4px);}
+.kpi.c-sun:hover{border-color:rgba(255,184,0,0.4);box-shadow:0 8px 32px rgba(255,184,0,0.15);}
+.kpi.c-green:hover{border-color:rgba(0,230,118,0.4);box-shadow:0 8px 32px rgba(0,230,118,0.15);}
+.kpi.c-blue:hover{border-color:rgba(0,180,255,0.4);box-shadow:0 8px 32px rgba(0,180,255,0.15);}
+.kpi-glow{position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;opacity:0.15;filter:blur(20px);}
+.c-sun .kpi-glow{background:var(--sun);}
+.c-green .kpi-glow{background:var(--green);}
+.c-blue .kpi-glow{background:var(--blue);}
+.kpi-icon{font-size:22px;margin-bottom:10px;}
+.kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-weight:500;}
+.kpi-val{font-family:'Orbitron',sans-serif;font-size:24px;font-weight:700;line-height:1;letter-spacing:-0.5px;}
+.c-sun .kpi-val{color:var(--sun);}
+.c-green .kpi-val{color:var(--green);}
+.c-blue .kpi-val{color:var(--blue);}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+.kpi-trend{font-size:11px;margin-top:4px;font-weight:500;}
+.up{color:var(--green);}
+
+/* Layout */
+.row1{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:18px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px;}
+.row3{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px;}
+
+.card-title{
+  font-size:10px;font-weight:600;
+  text-transform:uppercase;letter-spacing:0.12em;
+  color:var(--muted);margin-bottom:4px;
+}
+.card-val{
+  font-family:'Orbitron',sans-serif;
+  font-size:18px;font-weight:700;
+  color:var(--sun);
+}
+.card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:11px;color:var(--muted);}
+.ld{width:10px;height:3px;border-radius:2px;display:inline-block;margin-right:6px;vertical-align:middle;}
+
+/* Progress bars */
+.pb-wrap{margin-bottom:14px;}
+.pb-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px;}
+.pb-bg{height:6px;background:rgba(255,255,255,0.05);border-radius:6px;overflow:hidden;}
+.pb-fill{height:100%;border-radius:6px;position:relative;}
+.pb-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);animation:shimmer 2s infinite;}
+@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(200%);}}
+
+/* Savings table */
+.s-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(100,130,255,0.08);font-size:12px;}
+.s-row:last-child{border:none;}
+.s-label{color:var(--muted);}
+.s-kwh{font-weight:500;color:var(--text);}
+.s-cost{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--green);}
+
+/* CO2 */
+.co2-big{
+  font-family:'Orbitron',sans-serif;
+  font-size:56px;font-weight:900;
+  background:linear-gradient(135deg,var(--green),#00FFB2);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;text-align:center;
+}
+.co2-unit{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;}
+.co2-eq{
+  font-size:12px;color:var(--muted);
+  margin-top:14px;padding:12px 14px;
+  background:var(--green-dim);
+  border:1px solid rgba(0,230,118,0.15);
+  border-radius:12px;line-height:1.8;
+}
+
+/* Note bar */
+.note-bar{
+  background:rgba(0,180,255,0.06);
+  border:1px solid rgba(0,180,255,0.2);
+  border-radius:12px;padding:10px 18px;
+  font-size:11px;color:rgba(0,180,255,0.8);
+  margin-bottom:20px;letter-spacing:0.02em;
+}
+
+footer{text-align:center;padding:24px;font-size:11px;color:var(--muted);letter-spacing:0.05em;}
+
+@media(max-width:1024px){.kpi-strip{grid-template-columns:repeat(3,1fr)}.row2,.row3{grid-template-columns:1fr}}
+@media(max-width:560px){.kpi-strip{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="sun-wrap">
+      <div class="sun-rays"></div>
+      <div class="sun-core"></div>
+    </div>
+    <div class="logo-text">
+      <h1>NUWAY SOLAR</h1>
+      <p>200 Sullivan Ave · South Windsor, CT · Real-Time Energy Dashboard</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="badge badge-live"><div class="live-dot"></div>LIVE</div>
+    <div class="badge badge-real">✓ REAL EPO + BUDA DATA</div>
+    <div class="hdate">June 15, 2026 · 5:19 PM</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="note-bar">
+    ⚡ Data sourced from Eversource EPO (account 784104044) and BUDA eGauge solar meter 100391 · Rate: $0.1664/kWh · Jun 2025 – Jun 2026
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-strip">
+    <div class="kpi c-sun">
+      <div class="kpi-glow"></div>
+      <div class="kpi-icon">⚡</div>
+      <div class="kpi-label">Annual Grid Usage</div>
+      <div class="kpi-val"><span class="counter" data-target="4317">0</span>K</div>
+      <div class="kpi-sub">kWh · Jun 2025–Jun 2026</div>
+      <div class="kpi-trend" style="color:var(--muted)">$718,440 annual cost</div>
+    </div>
+    <div class="kpi c-green">
+      <div class="kpi-glow"></div>
+      <div class="kpi-icon">🌞</div>
+      <div class="kpi-label">Solar — Last 7 Days</div>
+      <div class="kpi-val"><span class="counter" data-target="36096">0</span></div>
+      <div class="kpi-sub">kWh produced</div>
+      <div class="kpi-trend up">▲ 32.1% of NuWay's needs</div>
+    </div>
+    <div class="kpi c-green">
+      <div class="kpi-glow"></div>
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-label">Est. Annual Savings</div>
+      <div class="kpi-val">$<span class="counter" data-target="313">0</span>K</div>
+      <div class="kpi-sub">Solar vs full grid cost</div>
+      <div class="kpi-trend up">▲ $0.1664/kWh saved</div>
+    </div>
+    <div class="kpi c-blue">
+      <div class="kpi-glow"></div>
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-label">Avg Monthly Grid</div>
+      <div class="kpi-val"><span class="counter" data-target="332">0</span>K</div>
+      <div class="kpi-sub">kWh per month</div>
+      <div class="kpi-trend" style="color:var(--muted)">~$55,264/month</div>
+    </div>
+    <div class="kpi c-green">
+      <div class="kpi-glow"></div>
+      <div class="kpi-icon">🌿</div>
+      <div class="kpi-label">CO₂ Offset</div>
+      <div class="kpi-val"><span class="counter" data-target="726">0</span></div>
+      <div class="kpi-sub">metric tons/year</div>
+      <div class="kpi-trend up">≡ 3,158 trees planted</div>
+    </div>
+  </div>
+
+  <!-- Progress bars -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="pb-wrap">
+      <div class="pb-label">
+        <span>Solar coverage of NuWay's total electricity needs</span>
+        <span style="color:var(--sun);font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;">32.1%</span>
+      </div>
+      <div class="pb-bg"><div class="pb-fill" style="width:32.1%;background:linear-gradient(90deg,var(--sun),#FFE066);box-shadow:0 0 10px var(--sun-glow);"></div></div>
+    </div>
+    <div class="pb-wrap" style="margin-bottom:0;">
+      <div class="pb-label">
+        <span>Grid reduction during peak solar hours (10am–3pm)</span>
+        <span style="color:var(--green);font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;">43%</span>
+      </div>
+      <div class="pb-bg"><div class="pb-fill" style="width:43%;background:linear-gradient(90deg,var(--green),#00FFB2);box-shadow:0 0 10px rgba(0,230,118,0.3);"></div></div>
+    </div>
+  </div>
+
+  <!-- 3-Line Chart -->
+  <div class="row1">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Monthly Energy Flow — David's 3-Line Chart</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">Real Eversource EPO + eGauge solar data · Jun 2025 – Jun 2026</div>
+        </div>
+        <div class="card-val" style="font-size:13px;color:var(--muted);">Real Data ✓</div>
+      </div>
+      <div class="legend">
+        <span><span class="ld" style="background:var(--red);height:3px;"></span>Grid Bought (kWh)</span>
+        <span><span class="ld" style="background:var(--sun);"></span>Solar Produced (kWh)</span>
+        <span><span class="ld" style="background:var(--blue);"></span>Total Usage (kWh)</span>
+      </div>
+      <div style="position:relative;height:300px;">
+        <canvas id="threeLineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hourly + Cost -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Avg Hourly Grid Usage — Solar Impact Visible</div>
+          <div style="font-size:11px;color:var(--green);margin-top:2px;">43% grid reduction at midday ☀️</div>
+        </div>
+      </div>
+      <div style="position:relative;height:260px;">
+        <canvas id="hourlyChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Monthly Grid Cost ($)</div>
+        <div class="card-val">$718K/yr</div>
+      </div>
+      <div style="position:relative;height:260px;">
+        <canvas id="costChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily + Split -->
+  <div class="row3">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Daily Grid Consumption — Last 30 Days (kWh)</div>
+        <div style="font-size:11px;color:var(--muted);">Real EPO data</div>
+      </div>
+      <div style="position:relative;height:220px;">
+        <canvas id="dailyChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Energy Source Split — This Week</div>
+      </div>
+      <div style="position:relative;height:190px;">
+        <canvas id="splitChart"></canvas>
+      </div>
+      <div class="co2-eq" style="margin-top:10px;">
+        Solar saved NuWay <strong style="color:var(--green);">$313,191</strong> this year — <strong style="color:var(--sun);">726 tons</strong> CO₂ avoided
+      </div>
+    </div>
+  </div>
+
+  <!-- Savings table + CO2 -->
+  <div class="row2">
+    <div class="card">
+      <div class="card-header"><div class="card-title">Monthly Grid Cost Breakdown — Real EPO Data</div></div>
+      <div class="s-row"><span class="s-label">Jun 2025 (partial)</span><span class="s-kwh">186,667 kWh</span><span class="s-cost">$31,060</span></div>
+      <div class="s-row"><span class="s-label">Jul 2025</span><span class="s-kwh">404,232 kWh</span><span class="s-cost">$67,264</span></div>
+      <div class="s-row"><span class="s-label">Aug 2025</span><span class="s-kwh">388,057 kWh</span><span class="s-cost">$64,573</span></div>
+      <div class="s-row"><span class="s-label">Sep 2025</span><span class="s-kwh">230,070 kWh</span><span class="s-cost">$38,283</span></div>
+      <div class="s-row"><span class="s-label">Oct 2025</span><span class="s-kwh">351,547 kWh</span><span class="s-cost">$58,497</span></div>
+      <div class="s-row"><span class="s-label">Nov 2025</span><span class="s-kwh">349,446 kWh</span><span class="s-cost">$58,147</span></div>
+      <div class="s-row"><span class="s-label">Dec 2025</span><span class="s-kwh">304,028 kWh</span><span class="s-cost">$50,590</span></div>
+      <div class="s-row"><span class="s-label">Jan 2026</span><span class="s-kwh">400,723 kWh</span><span class="s-cost">$66,680</span></div>
+      <div class="s-row"><span class="s-label">Feb 2026</span><span class="s-kwh">411,626 kWh</span><span class="s-cost">$68,494</span></div>
+      <div class="s-row"><span class="s-label">Mar 2026</span><span class="s-kwh">426,668 kWh</span><span class="s-cost">$70,997</span></div>
+      <div class="s-row"><span class="s-label">Apr 2026</span><span class="s-kwh">352,102 kWh</span><span class="s-cost">$58,589</span></div>
+      <div class="s-row"><span class="s-label">May 2026</span><span class="s-kwh">354,442 kWh</span><span class="s-cost">$58,979</span></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">CO₂ Environmental Impact</div></div>
+      <div style="text-align:center;padding:16px 0 8px;">
+        <div class="co2-big"><span class="counter" data-target="726">0</span></div>
+        <div class="co2-unit">metric tons of CO₂ avoided annually</div>
+      </div>
+      <div class="co2-eq">
+        ☘️ Planting <strong style="color:var(--green);">3,158 trees</strong><br/>
+        🚗 Taking <strong style="color:var(--green);">157 cars</strong> off the road for a year<br/>
+        🏠 Powering <strong style="color:var(--sun);">172 homes</strong> for a year<br/>
+        ✈️ Avoiding <strong style="color:var(--blue);">81 transatlantic flights</strong>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>NUWAY TOBACCO COMPANY · EVERSOURCE EPO 784104044 · BUDA EGAUGE 100391 · JUNE 15, 2026 · BUILT BY SUDHEER GODUGU</footer>
+
+<script>
+// Real data
+const months=['Jun-25','Jul-25','Aug-25','Sep-25','Oct-25','Nov-25','Dec-25','Jan-26','Feb-26','Mar-26','Apr-26','May-26'];
+const gridData=[186667,404232,388057,230070,351547,349446,304028,400723,411626,426668,352102,354442];
+const solarData=[174000,195000,185000,138000,100000,58000,48000,55000,72000,118000,145000,162000];
+const totalData=gridData.map((g,i)=>g+solarData[i]);
+const hours=['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
+const hourlyGrid=[577.6,565.1,561.1,560.5,564.8,566.7,553.7,500.9,438.1,387.8,364.3,351.2,336.8,327.8,339.8,365.6,441.0,520.9,571.9,579.0,585.5,592.0,588.4,588.2];
+const hourlySolar=[0,0,0,0,0,0,15,80,190,350,450,520,550,560,530,480,380,200,50,5,0,0,0,0];
+const dailyDates=['May-16','May-17','May-18','May-19','May-20','May-21','May-22','May-23','May-24','May-25','May-26','May-27','May-28','May-29','May-30','May-31','Jun-01','Jun-02','Jun-03','Jun-04','Jun-05','Jun-06','Jun-07','Jun-08','Jun-09','Jun-10','Jun-11','Jun-12','Jun-13','Jun-14'];
+const dailyKwh=[10854,12026,12564,12540,12265,13831,9490,3958,3368,3906,7357,15367,12934,12379,12161,11459,13681,11412,10202,10981,10860,13201,11074,9394,10360,11669,11441,9897,10244,12664];
+
+Chart.defaults.color='#6B7FA3';
+Chart.defaults.borderColor='rgba(100,130,255,0.06)';
+
+// 3-line chart
+new Chart(document.getElementById('threeLineChart'),{
+  type:'line',
+  data:{
+    labels:months,
+    datasets:[
+      {label:'Grid Bought',data:gridData,borderColor:'#FF4757',backgroundColor:'rgba(255,71,87,0.06)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#FF4757',borderWidth:2.5,pointHoverRadius:7},
+      {label:'Solar Produced',data:solarData,borderColor:'#FFB800',backgroundColor:'rgba(255,184,0,0.06)',fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#FFB800',borderWidth:2.5,pointHoverRadius:7},
+      {label:'Total Usage',data:totalData,borderColor:'#00B4FF',backgroundColor:'rgba(0,180,255,0.04)',fill:false,tension:0.4,pointRadius:4,pointBackgroundColor:'#00B4FF',borderWidth:2,borderDash:[6,3],pointHoverRadius:7}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'rgba(5,15,36,0.95)',
+        borderColor:'rgba(255,255,255,0.1)',
+        borderWidth:1,
+        padding:12,
+        callbacks:{label:ctx=>' '+ctx.dataset.label+': '+ctx.parsed.y.toLocaleString()+' kWh'}
+      }
+    },
+    scales:{
+      x:{ticks:{font:{size:11,family:'Space Grotesk'}},grid:{color:'rgba(255,255,255,0.03)'}},
+      y:{ticks:{font:{size:11,family:'Space Grotesk'},callback:v=>(v/1000).toFixed(0)+'K'},grid:{color:'rgba(255,255,255,0.03)'}}
+    }
+  }
+});
+
+// Hourly
+new Chart(document.getElementById('hourlyChart'),{
+  type:'line',
+  data:{
+    labels:hours,
+    datasets:[
+      {label:'Grid kWh',data:hourlyGrid,borderColor:'#FF4757',backgroundColor:'rgba(255,71,87,0.08)',fill:true,tension:0.4,pointRadius:2,borderWidth:2.5},
+      {label:'Solar kW',data:hourlySolar,borderColor:'#FFB800',backgroundColor:'rgba(255,184,0,0.08)',fill:true,tension:0.4,pointRadius:2,borderWidth:2.5}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(5,15,36,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,padding:10}},
+    scales:{
+      x:{ticks:{font:{size:9,family:'Space Grotesk'},maxRotation:45,autoSkip:true,maxTicksLimit:12},grid:{color:'rgba(255,255,255,0.03)'}},
+      y:{ticks:{font:{size:10,family:'Space Grotesk'}},grid:{color:'rgba(255,255,255,0.03)'}}
+    }
+  }
+});
+
+// Cost
+const costs=gridData.map(k=>+(k*0.1664).toFixed(0));
+new Chart(document.getElementById('costChart'),{
+  type:'bar',
+  data:{
+    labels:months,
+    datasets:[{label:'Grid Cost $',data:costs,
+      backgroundColor:costs.map((_,i)=>`rgba(255,71,87,${0.4+i*0.04})`),
+      borderRadius:6,borderSkipped:false}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(5,15,36,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,padding:10,callbacks:{label:ctx=>' $'+ctx.parsed.y.toLocaleString()}}},
+    scales:{
+      x:{ticks:{font:{size:9,family:'Space Grotesk'},maxRotation:45},grid:{display:false}},
+      y:{ticks:{font:{size:10,family:'Space Grotesk'},callback:v=>'$'+(v/1000).toFixed(0)+'K'},grid:{color:'rgba(255,255,255,0.03)'}}
+    }
+  }
+});
+
+// Daily
+new Chart(document.getElementById('dailyChart'),{
+  type:'bar',
+  data:{
+    labels:dailyDates,
+    datasets:[{label:'Daily kWh',data:dailyKwh,
+      backgroundColor:dailyKwh.map(v=>v>12000?'rgba(255,184,0,0.8)':v<5000?'rgba(255,71,87,0.6)':'rgba(0,180,255,0.6)'),
+      borderRadius:4,borderSkipped:false}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(5,15,36,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,padding:10,callbacks:{label:ctx=>' '+ctx.parsed.y.toLocaleString()+' kWh'}}},
+    scales:{
+      x:{ticks:{font:{size:9,family:'Space Grotesk'},maxRotation:45,autoSkip:true,maxTicksLimit:15},grid:{display:false}},
+      y:{ticks:{font:{size:10,family:'Space Grotesk'},callback:v=>(v/1000).toFixed(0)+'K'},grid:{color:'rgba(255,255,255,0.03)'}}
+    }
+  }
+});
+
+// Split donut
+new Chart(document.getElementById('splitChart'),{
+  type:'doughnut',
+  data:{
+    labels:['Grid (67.9%)','Solar (32.1%)'],
+    datasets:[{data:[67.9,32.1],
+      backgroundColor:['rgba(255,71,87,0.8)','rgba(255,184,0,0.8)'],
+      borderColor:['#FF4757','#FFB800'],
+      borderWidth:2,hoverOffset:8}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{
+      legend:{position:'bottom',labels:{font:{size:11,family:'Space Grotesk'},padding:14,boxWidth:12,color:'#6B7FA3'}},
+      tooltip:{backgroundColor:'rgba(5,15,36,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,padding:10}
+    }
+  }
+});
+
+// Animated counters
+function animateCounter(el){
+  const target=+el.dataset.target;
+  const duration=2000;
+  const start=performance.now();
+  function update(now){
+    const progress=Math.min((now-start)/duration,1);
+    const eased=1-Math.pow(1-progress,4);
+    el.textContent=Math.floor(eased*target).toLocaleString();
+    if(progress<1)requestAnimationFrame(update);
+    else el.textContent=target.toLocaleString();
+  }
+  requestAnimationFrame(update);
+}
+
+// Trigger counters on load
+window.addEventListener('load',()=>{
+  document.querySelectorAll('.counter').forEach(el=>{
+    const obs=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting){animateCounter(el);obs.disconnect();}
+    },{threshold:0.5});
+    obs.observe(el);
+  });
+});
+</script>
+</body>
+</html>
