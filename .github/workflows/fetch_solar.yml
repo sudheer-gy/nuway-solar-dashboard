@@ -18,7 +18,7 @@ jobs:
           # Try with digest auth first (eGauge default)
           curl -s --max-time 30 --retry 3 --retry-delay 5 \
             --digest -u "owner:" \
-            "https://egauge100391.egauge.io/cgi-bin/egauge-show?m&n=2880&C" \
+            "https://egauge100391.egauge.io/cgi-bin/egauge-show?m&n=5760&C" \
             -H "Accept: text/xml" \
             -o egauge_p2_raw.xml
           P2_SIZE=$(wc -c < egauge_p2_raw.xml 2>/dev/null || echo 0)
@@ -29,7 +29,7 @@ jobs:
           else
             echo "Phase 2: Auth may be required - trying without auth"
             curl -s --max-time 30 --retry 2 \
-              "https://egauge100391.egauge.io/cgi-bin/egauge-show?m&n=2880&C" \
+              "https://egauge100391.egauge.io/cgi-bin/egauge-show?m&n=5760&C" \
               -H "Accept: text/xml" \
               -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
               -o egauge_p2_raw.xml || true
@@ -45,7 +45,7 @@ jobs:
         run: |
           echo "Fetching Phase 1 solar data..."
           curl -s --max-time 30 --retry 3 --retry-delay 5 \
-            "https://egauge52389.egaug.es/cgi-bin/egauge-show?m&n=2880&C" \
+            "https://egauge52389.egaug.es/cgi-bin/egauge-show?m&n=5760&C" \
             -H "Accept: text/xml" \
             -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
             -o egauge_p1_raw.xml || true
@@ -126,6 +126,12 @@ jobs:
                   for h in hourly:
                       monthly[h['time'][:7]] += h['kwh']
 
+                  # Compute daily totals from all hourly data
+                  daily = {}
+                  for h in hourly:
+                      date = h['time'][:10]  # "2026-06-22"
+                      daily[date] = round((daily.get(date, 0) + h['kwh']), 2)
+
                   output = {
                       'updated_at': base_et.strftime('%Y-%m-%d %H:%M ET'),
                       'device': device,
@@ -134,7 +140,8 @@ jobs:
                       'today_kwh': today_kwh,
                       'yesterday_kwh': yest_kwh,
                       'current_kwh': current,
-                      'hourly_last_48': hourly,
+                      'hourly_last_48': hourly[-48:],
+                      'daily_last_4': daily,
                       'monthly': {k: round(v, 1) for k, v in monthly.items()}
                   }
 
